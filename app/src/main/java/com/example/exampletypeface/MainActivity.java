@@ -3,21 +3,30 @@ package com.example.exampletypeface;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Typeface;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.app.AppCompatDelegate;
 import android.util.AttributeSet;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends AppCompatActivity {
 
 	TextView messageView;
+	AppCompatDelegate mDelegate;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
+		if (Build.VERSION.SDK_INT < 11) {
+			getLayoutInflater().setFactory(this);
+		} else {
+			getLayoutInflater().setFactory2(this);
+		}
+		mDelegate = getDelegate();
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 //		messageView = (TextView) findViewById(R.id.text_message);
@@ -48,24 +57,49 @@ public class MainActivity extends ActionBarActivity {
 	@Override
 	public View onCreateView(String name, @NonNull Context context,
 			@NonNull AttributeSet attrs) {
-    	if (name.equals("TextView")) {
+		View view = super.onCreateView(name, context, attrs);
+		if (Build.VERSION.SDK_INT < 11) {
+			if (view == null) {
+				view = mDelegate.createView(null, name, context, attrs);
+				view = setCustomFont(view, name, context, attrs);
+			}
+		}
+    	return view;
+	}
+
+	@Override
+	public View onCreateView(View parent, String name, Context context, AttributeSet attrs) {
+		View view = super.onCreateView(parent, name, context, attrs);
+		if (view == null) {
+			view = mDelegate.createView(parent, name, context, attrs);
+		}
+		view = setCustomFont(view, name, context, attrs);
+		return view;
+	}
+
+	private View setCustomFont(View view, String name, Context context, AttributeSet attrs) {
+		if (view == null) {
+			if (name.equals("TextView")) {
+				view = new TextView(context, attrs);
+			}
+		}
+		if (view != null && view instanceof TextView) {
 //    		TypedArray ta = context.obtainStyledAttributes(attrs, new int[]{android.R.attr.fontFamily});
 //    		String fontname = ta.getString(0);
 //    		ta.recycle();
-    		TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.MyCustomFont);
-    		String fontname = ta.getString(R.styleable.MyCustomFont_customFont);
-    		int style = ta.getInt(R.styleable.MyCustomFont_android_textStyle, Typeface.NORMAL);
-    		ta.recycle();
-    		Typeface font = TypefaceManager.getInstance().getTypeface(this, fontname);
-    		TextView tv = (TextView)super.onCreateView(name, context, attrs);
-    		if (tv == null) {
-    			tv = new TextView(context, attrs);
-    		}
-    		if (font != null) {
-    			tv.setTypeface(font,style);
-    		}
-    		return tv;
-    	}
-    	return super.onCreateView(name, context, attrs);
+			TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.MyCustomFont);
+			String fontname = ta.getString(R.styleable.MyCustomFont_customFont);
+			int style = ta.getInt(R.styleable.MyCustomFont_android_textStyle, Typeface.NORMAL);
+			ta.recycle();
+			Typeface font = TypefaceManager.getInstance().getTypeface(this, fontname);
+			TextView tv = (TextView)view;
+			if (tv == null) {
+				tv = new TextView(context, attrs);
+			}
+			if (font != null) {
+				tv.setTypeface(font,style);
+			}
+		}
+		return view;
 	}
 }
